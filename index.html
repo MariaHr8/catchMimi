@@ -795,25 +795,7 @@
         [53.459437, -2.284397],
       ];
 
-      function loadPoints() {
-        let overrides = {};
-        try {
-          overrides = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        } catch (e) {}
-        return DEFAULT_POINTS.map((p) =>
-          overrides[p.id] ? { ...p, ...overrides[p.id] } : { ...p },
-        );
-      }
-      function savePinOverride(id, lat, lng) {
-        let overrides = {};
-        try {
-          overrides = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        } catch (e) {}
-        overrides[id] = { lat, lng };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
-      }
-
-      let points = loadPoints();
+      let points = DEFAULT_POINTS.map((p) => ({ ...p }));
       const routePoints = () =>
         points.filter((p) => !p.water).sort((a, b) => a.mile - b.mile);
 
@@ -847,19 +829,10 @@
             iconSize: [24, 24],
             iconAnchor: [12, 12],
           });
-          const m = L.marker([p.lat, p.lng], { icon, draggable: true }).addTo(
-            map,
-          );
+          const m = L.marker([p.lat, p.lng], { icon }).addTo(map);
           m.bindPopup(
             `<strong>${p.water ? "Water station" : "Mile " + p.mile}</strong><br>${p.name}`,
           );
-          m.on("dragend", (e) => {
-            const { lat, lng } = e.target.getLatLng();
-            p.lat = lat;
-            p.lng = lng;
-            savePinOverride(p.id, lat, lng);
-            updateLive();
-          });
           markers[p.id] = m;
         });
       }
