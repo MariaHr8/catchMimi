@@ -1,0 +1,1063 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Catch Mi If You Can</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <style>
+      :root {
+        --navy: #1c1c3a;
+        --yellow: #f5e642;
+        --blue: #2b8fd6;
+        --bg: #f7f7fa;
+        --muted: #666;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text, #1c1c3a);
+      }
+      header {
+        flex: 0 0 auto;
+        background: var(--navy);
+        color: #fff;
+        padding: 0.55rem 1rem;
+        text-align: center;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.05rem;
+      }
+      header p {
+        margin: 0.15rem 0 0;
+        color: #c9c9e0;
+        font-size: 0.75rem;
+      }
+      .controls-bar {
+        flex: 0 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+        align-items: flex-end;
+        padding: 0.6rem 1rem;
+        background: #fff;
+        border-bottom: 1px solid #eee;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .field label,
+      .field > span {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+      .field input {
+        padding: 0.4rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        width: 130px;
+      }
+      .field select {
+        padding: 0.4rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 0.9rem;
+      }
+      .status {
+        flex: 1 1 220px;
+        min-width: 200px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.5rem 0.7rem;
+        border-radius: 6px;
+        background: #fffbe0;
+        border: 1px solid var(--yellow);
+      }
+      .layout {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      #map-pane {
+        position: relative;
+        flex: 0 0 42vh;
+      }
+      #map {
+        position: absolute;
+        inset: 0;
+      }
+      .sidebar {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 0.8rem 1rem 1.2rem;
+        background: #fff;
+        border-top: 1px solid #eee;
+      }
+      @media (min-width: 768px) {
+        .layout {
+          flex-direction: row;
+        }
+        #map-pane {
+          flex: 1 1 auto;
+        }
+        .sidebar {
+          flex: 0 0 380px;
+          border-top: none;
+          border-left: 1px solid #eee;
+        }
+      }
+      h2 {
+        font-size: 0.9rem;
+        margin: 0 0 0.5rem;
+      }
+      .note {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin: 0 0 0.9rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+        margin-bottom: 0.9rem;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 0.4rem 0.4rem;
+        border-bottom: 1px solid #eee;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      tr.now td {
+        background: #fff6b0;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 0.7rem;
+        background: var(--blue);
+        color: #fff;
+        border-radius: 4px;
+        padding: 1px 6px;
+        margin-left: 6px;
+      }
+      .tag.water {
+        background: #0aa;
+      }
+      footer {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+      footer a {
+        color: var(--blue);
+      }
+      button {
+        background: var(--navy);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 0.4rem 0.7rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+      }
+      button:hover {
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Catch Mi If You Can</h1>
+    </header>
+
+    <div class="controls-bar">
+      <div class="field">
+        <label for="waveDate">Race date</label>
+        <input type="date" id="waveDate" value="2026-10-04" />
+      </div>
+      <div class="field">
+        <span>Wave &amp; pace</span>
+        <div style="padding: 0.4rem 0; font-weight: 600">
+          11:07 start · 7:00 /km
+        </div>
+      </div>
+      <div class="status" id="status">Enter details above</div>
+    </div>
+
+    <div class="layout">
+      <div id="map-pane">
+        <div id="map"></div>
+      </div>
+
+      <div class="sidebar">
+        <h2>Mile-by-mile</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Mile</th>
+              <th>Location</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+
+        <p class="note">
+          <span style="color: #7a3ec9; font-weight: 700">T</span> = Metrolink
+          tram stop, <span style="color: #c0392b; font-weight: 700">E</span> =
+          Event Village.
+        </p>
+
+        <footer>
+          Route source:
+          <a
+            href="https://www.manchesterhalfmarathon.com/route-map/"
+            target="_blank"
+            >manchesterhalfmarathon.com/route-map</a
+          >
+        </footer>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      const RACE_DISTANCE = 13.1;
+      const STORAGE_KEY = "mhm-pins-v1";
+
+      const DEFAULT_POINTS = [
+        {
+          id: "start",
+          mile: 0,
+          name: "Start — Old Trafford Cricket Ground",
+          lat: 53.463702,
+          lng: -2.281001,
+        },
+        {
+          id: "m1",
+          mile: 1,
+          name: "Hulme loop, Bridgewater Way / Chester Road",
+          lat: 53.471186,
+          lng: -2.260464,
+        },
+        {
+          id: "m2",
+          mile: 2,
+          name: "Bridgewater Way",
+          lat: 53.466165,
+          lng: -2.272785,
+        },
+        {
+          id: "w1",
+          mile: 2.4,
+          name: "Water station 1 — Wharfside Way",
+          lat: 53.463746,
+          lng: -2.281594,
+          water: true,
+        },
+        {
+          id: "m3",
+          mile: 3,
+          name: "Wharfside Way",
+          lat: 53.467437,
+          lng: -2.293016,
+        },
+        {
+          id: "m4",
+          mile: 4,
+          name: "Chester Rd / Talbot Rd junction, Old Trafford",
+          lat: 53.461446,
+          lng: -2.287536,
+        },
+        {
+          id: "m5",
+          mile: 5,
+          name: "Chester Road, Stretford",
+          lat: 53.450224,
+          lng: -2.302257,
+        },
+        {
+          id: "w2",
+          mile: 5.8,
+          name: "Water station 2 (gels) — Cross Street, Sale",
+          lat: 53.44092,
+          lng: -2.312651,
+          water: true,
+        },
+        {
+          id: "m6",
+          mile: 6,
+          name: "Cross Street, Sale",
+          lat: 53.438229,
+          lng: -2.314323,
+        },
+        {
+          id: "m7",
+          mile: 7,
+          name: "Broad Road, Sale Moor",
+          lat: 53.425884,
+          lng: -2.318558,
+        },
+        {
+          id: "m8",
+          mile: 8,
+          name: "Broad Road, Sale Moor",
+          lat: 53.425912,
+          lng: -2.301162,
+        },
+        {
+          id: "w3",
+          mile: 8.8,
+          name: "Water station 3 (gels) — Cross Street",
+          lat: 53.431102,
+          lng: -2.316582,
+          water: true,
+        },
+        {
+          id: "m9",
+          mile: 9,
+          name: "Cross Street, Sale",
+          lat: 53.432525,
+          lng: -2.317433,
+        },
+        {
+          id: "m10",
+          mile: 10,
+          name: "Edge Lane",
+          lat: 53.445523,
+          lng: -2.307356,
+        },
+        {
+          id: "m11",
+          mile: 11,
+          name: "Edge Lane, near Chorlton-cum-Hardy",
+          lat: 53.442581,
+          lng: -2.284541,
+        },
+        {
+          id: "w4",
+          mile: 11.4,
+          name: "Water station 4 — Seymour Grove",
+          lat: 53.443983,
+          lng: -2.278239,
+          water: true,
+        },
+        {
+          id: "m12",
+          mile: 12,
+          name: "Seymour Grove, Whalley Range / Old Trafford",
+          lat: 53.451725,
+          lng: -2.273218,
+        },
+        {
+          id: "m13",
+          mile: 13,
+          name: "Talbot Road",
+          lat: 53.460311,
+          lng: -2.282458,
+        },
+        {
+          id: "finish",
+          mile: 13.1,
+          name: "Finish — Old Trafford Cricket Ground",
+          lat: 53.459437,
+          lng: -2.284397,
+        },
+      ];
+
+      const LANDMARKS = [
+        {
+          name: "Deansgate-Castlefield Tram Stop",
+          lat: 53.474221,
+          lng: -2.250972,
+          tram: true,
+        },
+        {
+          name: "Wharfside Tram Stop",
+          lat: 53.466372,
+          lng: -2.287923,
+          tram: true,
+        },
+        {
+          name: "Old Trafford Tram Stop",
+          lat: 53.456175,
+          lng: -2.28491,
+          tram: true,
+        },
+        {
+          name: "Stretford Tram Stop",
+          lat: 53.446041,
+          lng: -2.303729,
+          tram: true,
+        },
+        {
+          name: "Chorlton Tram Stop",
+          lat: 53.442785,
+          lng: -2.273537,
+          tram: true,
+        },
+        { name: "Sale Tram Stop", lat: 53.424255, lng: -2.318937, tram: true },
+        {
+          name: "Event Village (Emirates Old Trafford)",
+          lat: 53.456348,
+          lng: -2.286702,
+          tram: false,
+        },
+      ];
+
+      const ROUTE_LINE = [
+        [53.463702, -2.281001],
+        [53.463941, -2.280005],
+        [53.464817, -2.276604],
+        [53.465411, -2.274589],
+        [53.465667, -2.273856],
+        [53.466158, -2.272551],
+        [53.466556, -2.271677],
+        [53.46715, -2.270674],
+        [53.468189, -2.269077],
+        [53.468629, -2.268262],
+        [53.468932, -2.267597],
+        [53.469179, -2.266873],
+        [53.469385, -2.266203],
+        [53.469644, -2.265372],
+        [53.469802, -2.265005],
+        [53.469903, -2.264649],
+        [53.471114, -2.260718],
+        [53.471664, -2.258791],
+        [53.471684, -2.258623],
+        [53.471678, -2.258439],
+        [53.471643, -2.258272],
+        [53.471614, -2.258134],
+        [53.471529, -2.257608],
+        [53.47152, -2.257519],
+        [53.471514, -2.257404],
+        [53.471518, -2.257306],
+        [53.471531, -2.257195],
+        [53.471605, -2.25699],
+        [53.471777, -2.256756],
+        [53.471907, -2.256688],
+        [53.472036, -2.256663],
+        [53.472156, -2.256723],
+        [53.472204, -2.25677],
+        [53.472257, -2.256811],
+        [53.47233, -2.256883],
+        [53.472352, -2.256941],
+        [53.472341, -2.257021],
+        [53.472158, -2.257613],
+        [53.471959, -2.258294],
+        [53.471878, -2.25856],
+        [53.470576, -2.262631],
+        [53.469392, -2.266636],
+        [53.468985, -2.267805],
+        [53.468852, -2.26813],
+        [53.46872, -2.268429],
+        [53.46861, -2.268654],
+        [53.468489, -2.268862],
+        [53.468305, -2.269159],
+        [53.467224, -2.270738],
+        [53.466969, -2.271148],
+        [53.466714, -2.27159],
+        [53.466416, -2.272211],
+        [53.466111, -2.272908],
+        [53.465887, -2.273492],
+        [53.465581, -2.274365],
+        [53.465304, -2.275225],
+        [53.465223, -2.275495],
+        [53.464953, -2.276441],
+        [53.464729, -2.277328],
+        [53.464475, -2.278392],
+        [53.463874, -2.281063],
+        [53.463751, -2.281568],
+        [53.463729, -2.281686],
+        [53.46372, -2.281779],
+        [53.463725, -2.281889],
+        [53.463745, -2.281991],
+        [53.463773, -2.282122],
+        [53.463867, -2.282431],
+        [53.464079, -2.282907],
+        [53.464279, -2.283219],
+        [53.464427, -2.283487],
+        [53.464454, -2.283575],
+        [53.464506, -2.283733],
+        [53.464531, -2.283889],
+        [53.464517, -2.284348],
+        [53.464581, -2.284973],
+        [53.464657, -2.285593],
+        [53.464752, -2.286272],
+        [53.464848, -2.286991],
+        [53.464989, -2.288332],
+        [53.465094, -2.289075],
+        [53.465126, -2.289209],
+        [53.465177, -2.289295],
+        [53.465235, -2.289351],
+        [53.465341, -2.289367],
+        [53.465512, -2.289328],
+        [53.465684, -2.289287],
+        [53.465849, -2.289258],
+        [53.466249, -2.289169],
+        [53.466322, -2.289173],
+        [53.466416, -2.289225],
+        [53.466463, -2.289313],
+        [53.466501, -2.289446],
+        [53.46673, -2.290418],
+        [53.467082, -2.291692],
+        [53.467697, -2.293987],
+        [53.467716, -2.294056],
+        [53.467719, -2.294122],
+        [53.467712, -2.294182],
+        [53.467693, -2.294235],
+        [53.467666, -2.294279],
+        [53.467523, -2.29435],
+        [53.467083, -2.294493],
+        [53.466468, -2.294679],
+        [53.465904, -2.294844],
+        [53.465856, -2.294851],
+        [53.465813, -2.294823],
+        [53.46578, -2.294754],
+        [53.465724, -2.294335],
+        [53.465653, -2.293827],
+        [53.465513, -2.292809],
+        [53.465296, -2.291265],
+        [53.465137, -2.290458],
+        [53.46496, -2.289839],
+        [53.46475, -2.289276],
+        [53.464217, -2.288027],
+        [53.464085, -2.287651],
+        [53.463972, -2.287242],
+        [53.463905, -2.286913],
+        [53.46386, -2.286532],
+        [53.463854, -2.286182],
+        [53.463898, -2.284343],
+        [53.463917, -2.283841],
+        [53.463926, -2.283597],
+        [53.463942, -2.28335],
+        [53.463943, -2.283208],
+        [53.463936, -2.283092],
+        [53.463923, -2.28299],
+        [53.463907, -2.282919],
+        [53.463889, -2.282849],
+        [53.463859, -2.282762],
+        [53.463802, -2.282625],
+        [53.463706, -2.282491],
+        [53.463563, -2.282395],
+        [53.463526, -2.282392],
+        [53.463503, -2.282425],
+        [53.462979, -2.28379],
+        [53.462764, -2.284323],
+        [53.462478, -2.285009],
+        [53.462108, -2.285878],
+        [53.461805, -2.286558],
+        [53.461553, -2.287231],
+        [53.461225, -2.288168],
+        [53.460796, -2.289217],
+        [53.460042, -2.290682],
+        [53.459144, -2.292252],
+        [53.457793, -2.294866],
+        [53.457598, -2.295176],
+        [53.45748, -2.295326],
+        [53.457261, -2.295574],
+        [53.453877, -2.298926],
+        [53.452191, -2.30047],
+        [53.451431, -2.301047],
+        [53.450765, -2.301618],
+        [53.450362, -2.302066],
+        [53.449803, -2.302838],
+        [53.448866, -2.303922],
+        [53.447921, -2.304912],
+        [53.446979, -2.30598],
+        [53.446506, -2.306567],
+        [53.446247, -2.306871],
+        [53.445735, -2.307508],
+        [53.445168, -2.308155],
+        [53.4442, -2.309289],
+        [53.442807, -2.310844],
+        [53.442626, -2.311083],
+        [53.442507, -2.311249],
+        [53.442453, -2.311359],
+        [53.442413, -2.311505],
+        [53.442392, -2.311649],
+        [53.442342, -2.312328],
+        [53.442323, -2.312426],
+        [53.442295, -2.312488],
+        [53.442239, -2.31256],
+        [53.442168, -2.312623],
+        [53.441975, -2.312643],
+        [53.441822, -2.312628],
+        [53.441704, -2.312628],
+        [53.441177, -2.312622],
+        [53.441046, -2.312635],
+        [53.440913, -2.312652],
+        [53.440674, -2.312702],
+        [53.440254, -2.312837],
+        [53.439755, -2.313058],
+        [53.43919, -2.313441],
+        [53.437611, -2.31489],
+        [53.436989, -2.315318],
+        [53.436496, -2.315615],
+        [53.436265, -2.315745],
+        [53.435635, -2.315993],
+        [53.434916, -2.316202],
+        [53.434364, -2.316278],
+        [53.434189, -2.316345],
+        [53.433912, -2.316514],
+        [53.432911, -2.317285],
+        [53.431292, -2.318909],
+        [53.428348, -2.322025],
+        [53.428267, -2.322081],
+        [53.428218, -2.322099],
+        [53.428105, -2.322039],
+        [53.42789, -2.321684],
+        [53.427133, -2.320185],
+        [53.427022, -2.319939],
+        [53.426737, -2.319197],
+        [53.426553, -2.31873],
+        [53.426507, -2.31867],
+        [53.42643, -2.318611],
+        [53.425932, -2.318555],
+        [53.42586, -2.31856],
+        [53.42582, -2.318589],
+        [53.425791, -2.318633],
+        [53.425774, -2.318682],
+        [53.425766, -2.318743],
+        [53.425776, -2.318832],
+        [53.425849, -2.319172],
+        [53.425845, -2.319398],
+        [53.425832, -2.319666],
+        [53.425809, -2.319789],
+        [53.42579, -2.319853],
+        [53.425764, -2.319905],
+        [53.425711, -2.319952],
+        [53.425311, -2.320068],
+        [53.425, -2.320173],
+        [53.424942, -2.320153],
+        [53.42491, -2.320091],
+        [53.424867, -2.319958],
+        [53.424806, -2.319774],
+        [53.424781, -2.319659],
+        [53.42458, -2.318475],
+        [53.424583, -2.318323],
+        [53.424622, -2.318088],
+        [53.424775, -2.317121],
+        [53.425229, -2.314287],
+        [53.425239, -2.314202],
+        [53.425242, -2.314132],
+        [53.425249, -2.314083],
+        [53.425246, -2.314062],
+        [53.425244, -2.314042],
+        [53.425267, -2.313896],
+        [53.42558, -2.312134],
+        [53.425954, -2.310242],
+        [53.42595, -2.310145],
+        [53.425935, -2.310059],
+        [53.425909, -2.309957],
+        [53.425183, -2.306389],
+        [53.424417, -2.302566],
+        [53.424414, -2.302524],
+        [53.424426, -2.302492],
+        [53.42444, -2.302471],
+        [53.42453, -2.302396],
+        [53.425947, -2.301131],
+        [53.426071, -2.301075],
+        [53.426196, -2.301036],
+        [53.426522, -2.301055],
+        [53.426852, -2.3011],
+        [53.427167, -2.301155],
+        [53.427283, -2.30117],
+        [53.427391, -2.301213],
+        [53.427458, -2.301266],
+        [53.42758, -2.301383],
+        [53.427632, -2.301459],
+        [53.427699, -2.301573],
+        [53.427776, -2.301745],
+        [53.427845, -2.301962],
+        [53.427896, -2.302183],
+        [53.427924, -2.302387],
+        [53.42803, -2.303527],
+        [53.42829, -2.304638],
+        [53.428491, -2.305379],
+        [53.428593, -2.305723],
+        [53.428833, -2.30639],
+        [53.429027, -2.306901],
+        [53.429114, -2.307186],
+        [53.429338, -2.308078],
+        [53.429415, -2.308257],
+        [53.429974, -2.309513],
+        [53.430106, -2.309988],
+        [53.430207, -2.310404],
+        [53.430438, -2.311324],
+        [53.430715, -2.312518],
+        [53.430738, -2.312655],
+        [53.430883, -2.313796],
+        [53.430991, -2.31468],
+        [53.431031, -2.314972],
+        [53.431037, -2.315053],
+        [53.431042, -2.315135],
+        [53.431103, -2.316523],
+        [53.4311, -2.316744],
+        [53.431013, -2.318333],
+        [53.431027, -2.31844],
+        [53.431062, -2.318553],
+        [53.431096, -2.318644],
+        [53.431156, -2.318707],
+        [53.431203, -2.31871],
+        [53.431276, -2.318645],
+        [53.433527, -2.31646],
+        [53.433782, -2.316267],
+        [53.434304, -2.315952],
+        [53.436309, -2.315288],
+        [53.436796, -2.315075],
+        [53.437474, -2.314598],
+        [53.439508, -2.313033],
+        [53.439882, -2.312806],
+        [53.44103, -2.312291],
+        [53.441485, -2.311983],
+        [53.44172, -2.31176],
+        [53.442175, -2.311202],
+        [53.445241, -2.30772],
+        [53.445784, -2.307019],
+        [53.445815, -2.30691],
+        [53.445834, -2.306795],
+        [53.445844, -2.30666],
+        [53.445847, -2.30653],
+        [53.445835, -2.306377],
+        [53.445736, -2.305566],
+        [53.445665, -2.305034],
+        [53.445482, -2.303707],
+        [53.445295, -2.302208],
+        [53.445078, -2.300519],
+        [53.444937, -2.29937],
+        [53.444714, -2.294829],
+        [53.4446, -2.293995],
+        [53.444465, -2.293468],
+        [53.442924, -2.289804],
+        [53.44279, -2.289378],
+        [53.442578, -2.288709],
+        [53.442464, -2.288284],
+        [53.442453, -2.287826],
+        [53.442615, -2.283668],
+        [53.442629, -2.280579],
+        [53.442556, -2.277562],
+        [53.442547, -2.277455],
+        [53.442565, -2.277388],
+        [53.442604, -2.277351],
+        [53.44265, -2.277369],
+        [53.44272, -2.277394],
+        [53.443877, -2.278192],
+        [53.444252, -2.278359],
+        [53.444551, -2.278475],
+        [53.444896, -2.278527],
+        [53.44497, -2.278513],
+        [53.445765, -2.277927],
+        [53.447597, -2.27699],
+        [53.447741, -2.276888],
+        [53.448481, -2.27616],
+        [53.448696, -2.275853],
+        [53.449138, -2.275107],
+        [53.449854, -2.274117],
+        [53.45069, -2.273199],
+        [53.450811, -2.273111],
+        [53.452234, -2.273277],
+        [53.453503, -2.273491],
+        [53.454901, -2.273986],
+        [53.457867, -2.275139],
+        [53.459242, -2.275629],
+        [53.461679, -2.276552],
+        [53.461997, -2.276716],
+        [53.462047, -2.276761],
+        [53.462057, -2.276829],
+        [53.461826, -2.279075],
+        [53.46176, -2.27933],
+        [53.461629, -2.279688],
+        [53.461105, -2.280694],
+        [53.459437, -2.284397],
+      ];
+
+      function loadPoints() {
+        let overrides = {};
+        try {
+          overrides = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        } catch (e) {}
+        return DEFAULT_POINTS.map((p) =>
+          overrides[p.id] ? { ...p, ...overrides[p.id] } : { ...p },
+        );
+      }
+      function savePinOverride(id, lat, lng) {
+        let overrides = {};
+        try {
+          overrides = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        } catch (e) {}
+        overrides[id] = { lat, lng };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+      }
+
+      let points = loadPoints();
+      const routePoints = () =>
+        points.filter((p) => !p.water).sort((a, b) => a.mile - b.mile);
+
+      const map = L.map("map").setView([53.445, -2.29], 12);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: 18,
+      }).addTo(map);
+
+      let polyline = L.polyline([], { color: "#ff2d92", weight: 5 }).addTo(map);
+      let markers = {};
+
+      const meIcon = L.icon({
+        iconUrl: "assets/runner.png",
+        iconSize: [38, 64],
+        iconAnchor: [19, 64],
+        tooltipAnchor: [0, -70],
+      });
+      let liveMarker = L.marker([points[0].lat, points[0].lng], {
+        icon: meIcon,
+      }).addTo(map);
+      liveMarker.bindTooltip("Mimi", { permanent: true, direction: "top" });
+
+      function redrawMarkers() {
+        Object.values(markers).forEach((m) => map.removeLayer(m));
+        markers = {};
+        points.forEach((p) => {
+          const icon = L.divIcon({
+            className: "",
+            html: `<div style="background:${p.water ? "#0aa" : "#1c1c3a"};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)">${p.water ? "W" : p.mile}</div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+          });
+          const m = L.marker([p.lat, p.lng], { icon, draggable: true }).addTo(
+            map,
+          );
+          m.bindPopup(
+            `<strong>${p.water ? "Water station" : "Mile " + p.mile}</strong><br>${p.name}`,
+          );
+          m.on("dragend", (e) => {
+            const { lat, lng } = e.target.getLatLng();
+            p.lat = lat;
+            p.lng = lng;
+            savePinOverride(p.id, lat, lng);
+            updateLive();
+          });
+          markers[p.id] = m;
+        });
+      }
+      redrawMarkers();
+
+      LANDMARKS.forEach((lm) => {
+        const icon = L.divIcon({
+          className: "",
+          html: `<div style="background:${lm.tram ? "#7a3ec9" : "#c0392b"};color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)">${lm.tram ? "T" : "E"}</div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+        });
+        L.marker([lm.lat, lm.lng], { icon })
+          .addTo(map)
+          .bindPopup(`<strong>${lm.name}</strong>`);
+      });
+
+      let routeGeometry = [];
+      let cumDist = [];
+      let totalDist = 0;
+
+      function haversine(a, b) {
+        const R = 6371000,
+          toRad = (d) => (d * Math.PI) / 180;
+        const dLat = toRad(b[0] - a[0]),
+          dLng = toRad(b[1] - a[1]);
+        const la1 = toRad(a[0]),
+          la2 = toRad(b[0]);
+        const h =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+        return 2 * R * Math.asin(Math.sqrt(h));
+      }
+
+      function setGeometry(coords) {
+        routeGeometry = coords;
+        cumDist = [0];
+        for (let i = 1; i < coords.length; i++) {
+          cumDist.push(cumDist[i - 1] + haversine(coords[i - 1], coords[i]));
+        }
+        totalDist = cumDist[cumDist.length - 1] || 1;
+        polyline.setLatLngs(routeGeometry);
+      }
+
+      function nearestNamedBefore(mile) {
+        const rp = routePoints();
+        let found = rp[0];
+        for (const p of rp) {
+          if (p.mile <= mile) found = p;
+          else break;
+        }
+        return found;
+      }
+
+      function positionAtMile(mile) {
+        mile = Math.max(0, Math.min(RACE_DISTANCE, mile));
+        const after = nearestNamedBefore(mile);
+        if (!routeGeometry.length) {
+          return { lat: after.lat, lng: after.lng, after };
+        }
+        const targetDist = (mile / RACE_DISTANCE) * totalDist;
+        for (let i = 0; i < cumDist.length - 1; i++) {
+          if (targetDist >= cumDist[i] && targetDist <= cumDist[i + 1]) {
+            const span = cumDist[i + 1] - cumDist[i] || 1;
+            const f = (targetDist - cumDist[i]) / span;
+            return {
+              lat:
+                routeGeometry[i][0] +
+                (routeGeometry[i + 1][0] - routeGeometry[i][0]) * f,
+              lng:
+                routeGeometry[i][1] +
+                (routeGeometry[i + 1][1] - routeGeometry[i][1]) * f,
+              after,
+            };
+          }
+        }
+        const last = routeGeometry[routeGeometry.length - 1];
+        return { lat: last[0], lng: last[1], after };
+      }
+
+      function parsePace(str) {
+        str = str.trim();
+        if (str.includes(":")) {
+          const [m, s] = str.split(":").map(Number);
+          return m + (s || 0) / 60;
+        }
+        return parseFloat(str) || 0;
+      }
+
+      const MILE_KM = 1.609344;
+      const WAVE_TIME = "11:07";
+      const PACE_VALUE = "7:00";
+      const PACE_UNIT = "km";
+
+      function getPaceMinPerMile() {
+        const raw = parsePace(PACE_VALUE);
+        return PACE_UNIT === "km" ? raw * MILE_KM : raw;
+      }
+
+      function formatDate(d) {
+        return d.toLocaleDateString("en-GB", {
+          weekday: "short",
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      function formatTime(d) {
+        return d.toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+      }
+
+      function getWaveStart() {
+        const date = document.getElementById("waveDate").value;
+        if (!date) return null;
+        return new Date(`${date}T${WAVE_TIME}:00`);
+      }
+
+      function renderTable(waveStart, pace) {
+        const tbody = document.getElementById("table-body");
+        tbody.innerHTML = "";
+        const now = new Date();
+        const currentMile =
+          waveStart && pace ? (now - waveStart) / 60000 / pace : -1;
+        points
+          .slice()
+          .sort((a, b) => a.mile - b.mile)
+          .forEach((p) => {
+            const tr = document.createElement("tr");
+            const eta =
+              waveStart && pace
+                ? new Date(waveStart.getTime() + p.mile * pace * 60000)
+                : null;
+            const isNow =
+              currentMile >= p.mile - 0.5 && currentMile < p.mile + 0.5;
+            if (isNow) tr.className = "now";
+            tr.innerHTML = `
+      <td>${p.water ? "" : p.mile}</td>
+      <td>${p.name}${p.water ? '<span class="tag water">water</span>' : ""}</td>
+      <td>${eta ? formatTime(eta) : "—"}</td>`;
+            tbody.appendChild(tr);
+          });
+      }
+
+      function updateLive() {
+        const waveStart = getWaveStart();
+        const pace = getPaceMinPerMile();
+        const statusEl = document.getElementById("status");
+
+        if (!waveStart || !pace) {
+          statusEl.textContent = "Enter wave time and pace above";
+          renderTable(null, null);
+          return;
+        }
+
+        const now = new Date();
+        const elapsedMin = (now - waveStart) / 60000;
+        const finishMin = RACE_DISTANCE * pace;
+
+        const startOfDay = (d) =>
+          new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const dayDiff = Math.round(
+          (startOfDay(waveStart) - startOfDay(now)) / 86400000,
+        );
+
+        if (dayDiff > 0) {
+          statusEl.textContent = `Race day is ${formatDate(waveStart)} — ${dayDiff} day${dayDiff === 1 ? "" : "s"} to go.`;
+        } else if (dayDiff < 0) {
+          statusEl.textContent = `Race day (${formatDate(waveStart)}) has passed.`;
+        } else if (elapsedMin < 0) {
+          statusEl.textContent = `Not started yet — wave starts at ${formatTime(waveStart)}`;
+        } else if (elapsedMin >= finishMin) {
+          const finishTime = new Date(waveStart.getTime() + finishMin * 60000);
+          statusEl.textContent = `Finished! Estimated finish around ${formatTime(finishTime)} — head to the finish area`;
+          const finishPt = points.find((p) => p.id === "finish");
+          liveMarker.setLatLng([finishPt.lat, finishPt.lng]);
+        } else {
+          const mile = elapsedMin / pace;
+          const pos = positionAtMile(mile);
+          statusEl.textContent = `Right now (${formatTime(now)}): approx. mile ${mile.toFixed(1)} — just past ${pos.after.name}`;
+          liveMarker.setLatLng([pos.lat, pos.lng]);
+        }
+
+        renderTable(waveStart, pace);
+      }
+
+      document.getElementById("waveDate").addEventListener("input", updateLive);
+
+      window.addEventListener("resize", () => map.invalidateSize());
+      setTimeout(() => map.invalidateSize(), 300);
+
+      setGeometry(ROUTE_LINE);
+      updateLive();
+      setInterval(updateLive, 15000);
+    </script>
+  </body>
+</html>
