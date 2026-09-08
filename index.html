@@ -196,8 +196,8 @@
 
     <div class="controls-bar">
       <div class="field">
-        <label for="waveDate">Race date</label>
-        <input type="date" id="waveDate" value="2026-10-04" />
+        <span>Race date</span>
+        <div style="padding: 0.4rem 0; font-weight: 600">Sun, 4 Oct 2026</div>
       </div>
       <div class="field">
         <span>Wave &amp; pace</span>
@@ -246,7 +246,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
       const RACE_DISTANCE = 13.1;
-      const STORAGE_KEY = "mhm-pins-v1";
 
       const DEFAULT_POINTS = [
         {
@@ -923,6 +922,7 @@
       }
 
       const MILE_KM = 1.609344;
+      const RACE_DATE = "2026-10-04";
       const WAVE_TIME = "11:07";
       const PACE_VALUE = "7:00";
       const PACE_UNIT = "km";
@@ -950,9 +950,7 @@
       }
 
       function getWaveStart() {
-        const date = document.getElementById("waveDate").value;
-        if (!date) return null;
-        return new Date(`${date}T${WAVE_TIME}:00`);
+        return new Date(`${RACE_DATE}T${WAVE_TIME}:00`);
       }
 
       function renderTable(waveStart, pace) {
@@ -1022,8 +1020,6 @@
 
         renderTable(waveStart, pace);
       }
-
-      document.getElementById("waveDate").addEventListener("input", updateLive);
 
       window.addEventListener("resize", () => map.invalidateSize());
       setTimeout(() => map.invalidateSize(), 300);
