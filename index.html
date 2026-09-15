@@ -948,13 +948,17 @@
       }).addTo(map);
       liveMarker.bindTooltip("Mimi", { permanent: true, direction: "top" });
 
+      const WATER_ICON_SVG = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7l5.66 5.65a8 8 0 1 1-11.31 0z"/></svg>`;
+      const TRAM_ICON_SVG = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="13" rx="2"/><path d="M4 11h16"/><path d="M8 16l-2 4"/><path d="M16 16l2 4"/><circle cx="8" cy="13.3" r="0.6" fill="currentColor" stroke="none"/><circle cx="16" cy="13.3" r="0.6" fill="currentColor" stroke="none"/></svg>`;
+      const FLAG_ICON_SVG = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="M5 4h11l-2 3 2 3H5"/></svg>`;
+
       function redrawMarkers() {
         Object.values(markers).forEach((m) => map.removeLayer(m));
         markers = {};
         points.forEach((p) => {
           const icon = L.divIcon({
             className: "",
-            html: `<div style="background:${p.water ? "#0284c7" : "#4f46e5"};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:3px solid #fff;box-shadow:0 2px 6px rgba(15,23,42,.25)">${p.water ? "W" : p.mile}</div>`,
+            html: `<div style="background:${p.water ? "#0284c7" : "#4f46e5"};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:3px solid #fff;box-shadow:0 2px 6px rgba(15,23,42,.25)">${p.water ? WATER_ICON_SVG : p.mile}</div>`,
             iconSize: [24, 24],
             iconAnchor: [12, 12],
           });
@@ -970,7 +974,7 @@
       LANDMARKS.forEach((lm) => {
         const icon = L.divIcon({
           className: "",
-          html: `<div style="background:${lm.tram ? "#7a3ec9" : "#c0392b"};color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:3px solid #fff;box-shadow:0 2px 6px rgba(15,23,42,.25)">${lm.tram ? "T" : "E"}</div>`,
+          html: `<div style="background:${lm.tram ? "#7a3ec9" : "#c0392b"};color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:3px solid #fff;box-shadow:0 2px 6px rgba(15,23,42,.25)">${lm.tram ? TRAM_ICON_SVG : FLAG_ICON_SVG}</div>`,
           iconSize: [22, 22],
           iconAnchor: [11, 11],
         });
