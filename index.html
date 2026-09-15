@@ -10,11 +10,18 @@
     />
     <style>
       :root {
-        --navy: #1c1c3a;
-        --yellow: #f5e642;
-        --blue: #2b8fd6;
-        --bg: #f7f7fa;
-        --muted: #666;
+        --primary: #4f46e5;
+        --header-bg: #334155;
+        --blue: #0284c7;
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --radius: 12px;
+        --amber-bg: #fef3c7;
+        --amber-text: #92400e;
+        --amber-border: #fcd34d;
       }
       * {
         box-sizing: border-box;
@@ -32,13 +39,13 @@
         font-family:
           -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         background: var(--bg);
-        color: var(--text, #1c1c3a);
+        color: var(--text-main);
       }
       header {
         flex: 0 0 auto;
-        background: var(--navy);
+        background: var(--header-bg);
         color: #fff;
-        padding: 0.55rem 1rem;
+        padding: 0.7rem 1rem;
         text-align: center;
       }
       header h1 {
@@ -47,61 +54,105 @@
       }
       header p {
         margin: 0.15rem 0 0;
-        color: #c9c9e0;
+        color: #cbd5e1;
         font-size: 0.75rem;
       }
       .controls-bar {
         flex: 0 0 auto;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.8rem;
+        gap: 1.4rem;
         align-items: flex-end;
-        padding: 0.6rem 1rem;
-        background: #fff;
-        border-bottom: 1px solid #eee;
+        padding: 1rem 1.25rem;
+        background: var(--surface);
+        border-bottom: none;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        position: relative;
+        z-index: 1;
       }
       .field {
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
+        gap: 0.3rem;
       }
       .field label,
-      .field > span {
-        font-size: 0.75rem;
-        color: var(--muted);
+      .field > span,
+      .stat-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+      }
+      .stat-value {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-main);
       }
       .field input {
         padding: 0.4rem;
-        border: 1px solid #ddd;
-        border-radius: 6px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
         font-size: 0.95rem;
         width: 130px;
       }
       .field select {
         padding: 0.4rem;
-        border: 1px solid #ddd;
-        border-radius: 6px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
         font-size: 0.9rem;
       }
       .status {
         flex: 1 1 220px;
         min-width: 200px;
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
         font-size: 0.85rem;
         font-weight: 600;
-        padding: 0.5rem 0.7rem;
-        border-radius: 6px;
-        background: #fffbe0;
-        border: 1px solid var(--yellow);
+        padding: 0.6rem 0.9rem;
+        border-radius: 8px;
+        background: var(--amber-bg);
+        color: var(--amber-text);
+        border: 1px solid var(--amber-border);
+      }
+      .status-dot {
+        flex: 0 0 auto;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--amber-text);
+        display: none;
+      }
+      .status-dot.live {
+        display: block;
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(146, 64, 14, 0.45);
+        }
+        70% {
+          box-shadow: 0 0 0 7px rgba(146, 64, 14, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(146, 64, 14, 0);
+        }
       }
       .layout {
         flex: 1 1 auto;
         min-height: 0;
         display: flex;
         flex-direction: column;
+        gap: 0.5rem;
+        padding: 0 0.5rem 0.5rem;
       }
       #map-pane {
         position: relative;
         flex: 0 0 42vh;
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
       }
       #map {
         position: absolute;
@@ -111,9 +162,28 @@
         flex: 1 1 auto;
         min-height: 0;
         overflow-y: auto;
-        padding: 0.8rem 1rem 1.2rem;
-        background: #fff;
-        border-top: 1px solid #eee;
+        padding: 1.1rem 1.25rem 1.4rem;
+        background: var(--surface);
+        border: none;
+        border-radius: var(--radius);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transition:
+          flex-grow 0.25s ease,
+          flex-basis 0.25s ease,
+          opacity 0.2s ease,
+          padding 0.25s ease;
+        opacity: 1;
+      }
+      .sidebar.collapsed {
+        flex: 0 0 0;
+        opacity: 0;
+        padding: 0;
+        overflow: hidden;
+        box-shadow: none;
+        pointer-events: none;
+      }
+      #layout.sidebar-collapsed #map-pane {
+        flex: 1 1 auto;
       }
       @media (min-width: 768px) {
         .layout {
@@ -124,17 +194,38 @@
         }
         .sidebar {
           flex: 0 0 380px;
-          border-top: none;
-          border-left: 1px solid #eee;
         }
       }
-      h2 {
-        font-size: 0.9rem;
-        margin: 0 0 0.5rem;
+      .sidebar-toggle {
+        flex: 0 0 auto;
+        width: 100%;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface);
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+      }
+      .sidebar-toggle:hover {
+        color: var(--text-main);
+      }
+      @media (min-width: 768px) {
+        .sidebar-toggle {
+          width: 20px;
+          height: auto;
+          align-self: stretch;
+        }
       }
       .note {
         font-size: 0.78rem;
-        color: var(--muted);
+        color: var(--text-muted);
         margin: 0 0 0.9rem;
       }
       table {
@@ -146,40 +237,60 @@
       th,
       td {
         text-align: left;
-        padding: 0.4rem 0.4rem;
-        border-bottom: 1px solid #eee;
+        padding: 0.55rem 0.5rem;
+        border-bottom: 1px solid #f1f5f9;
       }
       th {
-        color: var(--muted);
+        background: var(--surface);
+        position: sticky;
+        top: 0;
+        color: var(--text-muted);
         font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
       }
       tr.now td {
-        background: #fff6b0;
+        background: #eff6ff;
+        position: relative;
+      }
+      tr.now td:first-child::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--primary);
       }
       .tag {
         display: inline-block;
-        font-size: 0.7rem;
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
         background: var(--blue);
         color: #fff;
-        border-radius: 4px;
-        padding: 1px 6px;
+        border-radius: 9999px;
+        padding: 2px 8px;
         margin-left: 6px;
       }
       .tag.water {
-        background: #0aa;
+        background: #e0f2fe;
+        color: #0284c7;
       }
       footer {
         font-size: 0.75rem;
-        color: var(--muted);
+        color: var(--text-muted);
       }
       footer a {
         color: var(--blue);
       }
       button {
-        background: var(--navy);
+        background: var(--primary);
         color: #fff;
         border: none;
-        border-radius: 6px;
+        border-radius: 8px;
         padding: 0.4rem 0.7rem;
         font-size: 0.8rem;
         cursor: pointer;
@@ -196,25 +307,36 @@
 
     <div class="controls-bar">
       <div class="field">
-        <span>Race date</span>
-        <div style="padding: 0.4rem 0; font-weight: 600">Sun, 4 Oct 2026</div>
+        <span class="stat-label">Race date</span>
+        <div class="stat-value">Sun, 4 Oct 2026</div>
       </div>
       <div class="field">
-        <span>Wave &amp; pace</span>
-        <div style="padding: 0.4rem 0; font-weight: 600">
-          11:07 start · 7:00 /km
-        </div>
+        <span class="stat-label">Wave &amp; pace</span>
+        <div class="stat-value">11:07 start · 7:00 /km</div>
       </div>
-      <div class="status" id="status">Enter details above</div>
+      <div class="status" id="status">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Enter details above</span>
+      </div>
     </div>
 
-    <div class="layout">
+    <div class="layout" id="layout">
       <div id="map-pane">
         <div id="map"></div>
       </div>
 
-      <div class="sidebar">
-        <h2>Mile-by-mile</h2>
+      <button
+        type="button"
+        class="sidebar-toggle"
+        id="sidebar-toggle"
+        aria-expanded="true"
+        aria-controls="sidebar"
+        aria-label="Toggle mile-by-mile panel"
+      >
+        <span id="sidebar-chevron" aria-hidden="true">&#8250;</span>
+      </button>
+
+      <div class="sidebar" id="sidebar">
         <table>
           <thead>
             <tr>
@@ -799,10 +921,18 @@
         points.filter((p) => !p.water).sort((a, b) => a.mile - b.mile);
 
       const map = L.map("map").setView([53.445, -2.29], 12);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap contributors",
-        maxZoom: 18,
-      }).addTo(map);
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+        {
+          attribution:
+            "&copy; Esri &mdash; Esri, DeLorme, NAVTEQ | &copy; OpenStreetMap contributors",
+          maxZoom: 16,
+        },
+      ).addTo(map);
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 16 },
+      ).addTo(map);
 
       let polyline = L.polyline([], { color: "#ff2d92", weight: 5 }).addTo(map);
       let markers = {};
@@ -824,7 +954,7 @@
         points.forEach((p) => {
           const icon = L.divIcon({
             className: "",
-            html: `<div style="background:${p.water ? "#0aa" : "#1c1c3a"};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)">${p.water ? "W" : p.mile}</div>`,
+            html: `<div style="background:${p.water ? "#0284c7" : "#4f46e5"};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:3px solid #fff;box-shadow:0 2px 6px rgba(15,23,42,.25)">${p.water ? "W" : p.mile}</div>`,
             iconSize: [24, 24],
             iconAnchor: [12, 12],
           });
@@ -840,7 +970,7 @@
       LANDMARKS.forEach((lm) => {
         const icon = L.divIcon({
           className: "",
-          html: `<div style="background:${lm.tram ? "#7a3ec9" : "#c0392b"};color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)">${lm.tram ? "T" : "E"}</div>`,
+          html: `<div style="background:${lm.tram ? "#7a3ec9" : "#c0392b"};color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:3px solid #fff;box-shadow:0 2px 6px rgba(15,23,42,.25)">${lm.tram ? "T" : "E"}</div>`,
           iconSize: [22, 22],
           iconAnchor: [11, 11],
         });
@@ -982,17 +1112,14 @@
       function updateLive() {
         const waveStart = getWaveStart();
         const pace = getPaceMinPerMile();
-        const statusEl = document.getElementById("status");
-
-        if (!waveStart || !pace) {
-          statusEl.textContent = "Enter wave time and pace above";
-          renderTable(null, null);
-          return;
-        }
+        const statusTextEl = document.getElementById("status-text");
+        const statusDotEl = document.getElementById("status-dot");
 
         const now = new Date();
         const elapsedMin = (now - waveStart) / 60000;
         const finishMin = RACE_DISTANCE * pace;
+        const isLive = elapsedMin >= 0 && elapsedMin < finishMin;
+        statusDotEl.classList.toggle("live", isLive);
 
         const startOfDay = (d) =>
           new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -1001,25 +1128,38 @@
         );
 
         if (dayDiff > 0) {
-          statusEl.textContent = `Race day is ${formatDate(waveStart)} — ${dayDiff} day${dayDiff === 1 ? "" : "s"} to go.`;
+          statusTextEl.textContent = `Race day is ${formatDate(waveStart)} — ${dayDiff} day${dayDiff === 1 ? "" : "s"} to go.`;
         } else if (dayDiff < 0) {
-          statusEl.textContent = `Race day (${formatDate(waveStart)}) has passed.`;
+          statusTextEl.textContent = `Race day (${formatDate(waveStart)}) has passed.`;
         } else if (elapsedMin < 0) {
-          statusEl.textContent = `Not started yet — wave starts at ${formatTime(waveStart)}`;
+          statusTextEl.textContent = `Not started yet — wave starts at ${formatTime(waveStart)}`;
         } else if (elapsedMin >= finishMin) {
           const finishTime = new Date(waveStart.getTime() + finishMin * 60000);
-          statusEl.textContent = `Finished! Estimated finish around ${formatTime(finishTime)} — head to the finish area`;
+          statusTextEl.textContent = `Finished! Estimated finish around ${formatTime(finishTime)} — head to the finish area`;
           const finishPt = points.find((p) => p.id === "finish");
           liveMarker.setLatLng([finishPt.lat, finishPt.lng]);
         } else {
           const mile = elapsedMin / pace;
           const pos = positionAtMile(mile);
-          statusEl.textContent = `Right now (${formatTime(now)}): approx. mile ${mile.toFixed(1)} — just past ${pos.after.name}`;
+          statusTextEl.textContent = `Right now (${formatTime(now)}): approx. mile ${mile.toFixed(1)} — just past ${pos.after.name}`;
           liveMarker.setLatLng([pos.lat, pos.lng]);
         }
 
         renderTable(waveStart, pace);
       }
+
+      const layoutEl = document.getElementById("layout");
+      const sidebarEl = document.getElementById("sidebar");
+      const sidebarToggle = document.getElementById("sidebar-toggle");
+      const sidebarChevron = document.getElementById("sidebar-chevron");
+      sidebarToggle.addEventListener("click", () => {
+        const expanded = sidebarToggle.getAttribute("aria-expanded") === "true";
+        sidebarToggle.setAttribute("aria-expanded", String(!expanded));
+        sidebarEl.classList.toggle("collapsed", expanded);
+        layoutEl.classList.toggle("sidebar-collapsed", expanded);
+        sidebarChevron.innerHTML = expanded ? "&#8249;" : "&#8250;";
+        setTimeout(() => map.invalidateSize(), 260);
+      });
 
       window.addEventListener("resize", () => map.invalidateSize());
       setTimeout(() => map.invalidateSize(), 300);
